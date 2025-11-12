@@ -1,0 +1,13 @@
+.vscode
+data/prediction/
+build/
+data/eval/
+data/nuScenes
+data/nusc_bin
+data/torch_fp32.txt
+tool/checkpoint/
+tool/data/
+tool/*.pyc
+model/*.plan*
+model/*.log
+__pycache__
