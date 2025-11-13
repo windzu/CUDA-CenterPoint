@@ -25,15 +25,16 @@
 #include <iostream>
 #include <vector>
 
-PostProcessCuda::PostProcessCuda()
+PostProcessCuda::PostProcessCuda(const Params & params)
+: params_(params)
 {
-  checkCudaErrors(cudaMalloc((void **)&d_post_center_range_, 6 * sizeof(float)));
-  checkCudaErrors(cudaMalloc((void **)&d_voxel_size_, 2 * sizeof(float)));
-  checkCudaErrors(cudaMalloc((void **)&d_pc_range_, 2 * sizeof(float)));
+  checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_post_center_range_), 6 * sizeof(float)));
+  checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_voxel_size_), 2 * sizeof(float)));
+  checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_pc_range_), 2 * sizeof(float)));
 
-  checkCudaErrors(cudaMemcpy(d_post_center_range_, params_.post_center_range, 6 * sizeof(float), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_voxel_size_, params_.voxel_size, 2 * sizeof(float), cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_pc_range_, params_.pc_range, 2 * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_post_center_range_, params_.post_center_range.data(), 6 * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_voxel_size_, params_.voxel_size.data(), 2 * sizeof(float), cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_pc_range_, params_.pc_range.data(), 2 * sizeof(float), cudaMemcpyHostToDevice));
   return;
 }
 

@@ -25,7 +25,7 @@
 
 class PreProcessCuda {
   private:
-    Params params_;
+  Params params_;
     unsigned int *point2voxel_offset_;
     unsigned int *hash_table_;
     float *voxels_temp_;
@@ -43,7 +43,7 @@ class PreProcessCuda {
     unsigned int voxel_num_size_;
 
   public:
-    PreProcessCuda();
+  explicit PreProcessCuda(const Params & params = Params());
     ~PreProcessCuda();
 
     int alloc_resource();

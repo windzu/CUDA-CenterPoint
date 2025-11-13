@@ -57,7 +57,7 @@ class PostProcessCuda {
     float* d_pc_range_ = nullptr;
 
   public:
-    PostProcessCuda();
+    explicit PostProcessCuda(const Params & params = Params());
     ~PostProcessCuda();
 
     int doPostDecodeCuda(

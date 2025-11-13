@@ -25,7 +25,8 @@
 #include <assert.h>
 #include <iostream>
 
-PreProcessCuda::PreProcessCuda()
+PreProcessCuda::PreProcessCuda(const Params & params)
+: params_(params)
 {}
 
 PreProcessCuda::~PreProcessCuda()
@@ -54,7 +55,7 @@ unsigned int PreProcessCuda::getOutput(half** d_voxel_features, unsigned int** d
 }
 
 int PreProcessCuda::alloc_resource(){
-    hash_table_size_ = MAX_POINTS_NUM * 2 * 2 * sizeof(unsigned int);
+    hash_table_size_ = params_.max_points_num * 2U * 2U * sizeof(unsigned int);
 
     voxels_temp_size_ = params_.max_voxels * params_.max_points_per_voxel * params_.feature_num * sizeof(float);
     voxel_features_size_ = params_.max_voxels * params_.max_points_per_voxel * params_.feature_num * sizeof(half);

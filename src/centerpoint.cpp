@@ -47,15 +47,22 @@ double getAverage(std::vector<T> const& v) {
   return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
-CenterPoint::CenterPoint(std::string modelFile, bool verbose)
-    : verbose_(verbose) {
+CenterPoint::CenterPoint(
+    const std::string & modelFile,
+    const std::string & backboneOnnxFile,
+    const Params & params,
+    bool verbose)
+    : params_(params),
+      verbose_(verbose),
+      backbone_onnx_path_(backboneOnnxFile),
+      trt_engine_path_(modelFile) {
   trt_ = TensorRT::load(modelFile);
   if (trt_ == nullptr) abort();
 
-  pre_.reset(new PreProcessCuda());
-  post_.reset(new PostProcessCuda());
+  pre_ = std::make_shared<PreProcessCuda>(params_);
+  post_ = std::make_shared<PostProcessCuda>(params_);
 
-  scn_engine_ = spconv::load_engine_from_onnx("../model/centerpoint.scn.onnx");
+  scn_engine_ = spconv::load_engine_from_onnx(backboneOnnxFile);
 
   checkCudaErrors(
       cudaMallocHost((void**)&h_detections_num_, sizeof(unsigned int)));

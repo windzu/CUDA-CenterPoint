@@ -34,6 +34,7 @@
 
 std::string Model_File = "../model/rpn_centerhead_sim.plan";
 std::string Save_Dir   = "../data/prediction/";
+std::string Backbone_File = "../model/centerpoint.scn.onnx";
 
 void GetDeviceInfo()
 {
@@ -196,11 +197,11 @@ int main(int argc, const char **argv)
     cudaStream_t stream = NULL;
     checkCudaErrors(cudaStreamCreate(&stream));
 
-    CenterPoint centerpoint(Model_File, verbose);
+    CenterPoint centerpoint(Model_File, Backbone_File, params, verbose);
     centerpoint.prepare();
 
     float *d_points = nullptr;    
-    checkCudaErrors(cudaMalloc((void **)&d_points, MAX_POINTS_NUM * params.feature_num * sizeof(float)));
+    checkCudaErrors(cudaMalloc(reinterpret_cast<void **>(&d_points), params.max_points_num * params.feature_num * sizeof(float)));
     for (const auto & file : files)
     {
         std::string dataFile = data_folder + file + ".bin";

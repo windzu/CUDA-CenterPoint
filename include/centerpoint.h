@@ -20,8 +20,9 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
- 
+
 #include <memory>
+#include <string>
 
 #include "common.h"
 #include "NvInfer.h"
@@ -37,8 +38,10 @@ typedef struct float11 { float val[11]; } float11;
 
 class CenterPoint {
   private:
-    Params params_;
-    bool verbose_;
+  Params params_;
+  bool verbose_;
+  std::string backbone_onnx_path_;
+  std::string trt_engine_path_;
 
     std::shared_ptr<PreProcessCuda> pre_;
     std::shared_ptr<spconv::Engine> scn_engine_;
@@ -81,7 +84,11 @@ class CenterPoint {
     EventTimer timer_;
 
   public:
-    CenterPoint(std::string modelFile, bool verbose = false);
+    CenterPoint(
+      const std::string & modelFile,
+      const std::string & backboneOnnxFile,
+      const Params & params = Params(),
+      bool verbose = false);
     ~CenterPoint(void);
 
     int prepare();
