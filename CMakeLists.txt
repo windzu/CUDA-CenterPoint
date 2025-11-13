@@ -19,31 +19,33 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-cmake_minimum_required(VERSION 2.8.7)
-project(centerpoint)
-set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
+cmake_minimum_required(VERSION 3.10)
+cmake_policy(SET CMP0023 NEW)
+cmake_policy(SET CMP0104 NEW)
 
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+project(centerpoint LANGUAGES C CXX CUDA)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-Wextra -Wall -Wno-deprecated-declarations -O3")
 
-if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-  message("Using Debug Mode")
-  set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -g -G --ptxas-options=-v)
-endif()
+set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
 
-if(NOT DEFINED ENV{SPCONV_CUDA_VERSION} OR "$ENV{SPCONV_CUDA_VERSION}" STREQUAL "")
-  set(ENV{SPCONV_CUDA_VERSION} "12.8")
+# --- Set spconv CUDA Version ---
+if(NOT DEFINED SPCONV_CUDA_VERSION)
+  if(DEFINED ENV{SPCONV_CUDA_VERSION})
+    set(SPCONV_CUDA_VERSION "$ENV{SPCONV_CUDA_VERSION}" CACHE STRING "spconv CUDA version")
+  else()
+    set(SPCONV_CUDA_VERSION "12.8" CACHE STRING "spconv CUDA version")
+  endif()
 endif()
+message(STATUS "Using SPCONV_CUDA_VERSION: ${SPCONV_CUDA_VERSION}")
 
 # --- Find CUDA , CUDNN , TensorRT Modules ---
 # 1. 自定义 FindCUDNN.cmake FindTENSORRT.cmake 模块路径
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
 # 2. Find CUDA , CUDNN , TensorRT
-find_package(CUDA)
+# find_package(CUDA)
 find_package(CUDAToolkit)
 find_package(CUDNN REQUIRED)
 find_package(TENSORRT REQUIRED)
@@ -72,7 +74,7 @@ endif()
 
 set(SPCONV_ROOT "${CMAKE_CURRENT_LIST_DIR}/third_party/spconv")
 set(SPCONV_INCLUDE "${SPCONV_ROOT}/include")
-set(SPCONV_LIB_DIR "${SPCONV_ROOT}/lib/${arch}_cuda$ENV{SPCONV_CUDA_VERSION}")
+set(SPCONV_LIB_DIR "${SPCONV_ROOT}/lib/${arch}_cuda${SPCONV_CUDA_VERSION}")
 set(SPCONV_PARSER_DIR "${SPCONV_ROOT}/parser")
 set(SPCONV_ONNX_DIR "${SPCONV_ROOT}/onnx")
 
@@ -83,7 +85,7 @@ endif()
 
 find_package(Protobuf REQUIRED)
 
-set(SPCONV_PROTO_GEN_DIR "${CMAKE_BINARY_DIR}/generated/spconv")
+set(SPCONV_PROTO_GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/spconv")
 set(SPCONV_PROTO_OUTPUT_DIR "${SPCONV_PROTO_GEN_DIR}/onnx")
 set(SPCONV_PROTO_FILES
   "${SPCONV_ONNX_DIR}/onnx-ml.proto"
@@ -116,17 +118,6 @@ add_custom_command(
 add_custom_target(spconv_proto_generated DEPENDS ${SPCONV_PROTO_SRCS} ${SPCONV_PROTO_HDRS})
 
 
-
-include_directories(
-  ${CUDA_INCLUDE_DIRS}
-  ${TENSORRT_INCLUDE_DIRS}
-  ${SPCONV_INCLUDE}
-  ${SPCONV_PARSER_DIR}
-  ${SPCONV_PROTO_OUTPUT_DIR}
-  ${Protobuf_INCLUDE_DIRS}
-  include
-)
-
 file(GLOB_RECURSE SOURCE_FILES 
   src/*.cu 
   src/*.cpp
@@ -137,11 +128,48 @@ list(APPEND SOURCE_FILES
   ${SPCONV_PROTO_SRCS}
 )
 
-cuda_add_executable(${PROJECT_NAME} main.cpp ${SOURCE_FILES})
-add_dependencies(${PROJECT_NAME} spconv_proto_generated)
+# Build Core Library
+add_library(${PROJECT_NAME}_core ${SOURCE_FILES})
+add_dependencies(${PROJECT_NAME}_core spconv_proto_generated)
 
-target_link_libraries(${PROJECT_NAME}
-  ${TENSORRT_LIBRARIES}
-  ${SPCONV_LIBRARY}
-  ${Protobuf_LIBRARIES}
+set_target_properties(${PROJECT_NAME}_core PROPERTIES
+  CXX_STANDARD 17
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS OFF
 )
+
+target_include_directories(${PROJECT_NAME}_core
+  PUBLIC
+    # self header files
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    
+    # all dependency headers
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${TENSORRT_INCLUDE_DIRS}
+    ${SPCONV_INCLUDE}
+    ${SPCONV_PARSER_DIR}
+    ${SPCONV_PROTO_OUTPUT_DIR}
+    ${Protobuf_INCLUDE_DIRS}
+)
+
+target_link_libraries(${PROJECT_NAME}_core
+  PUBLIC
+    ${TENSORRT_LIBRARIES}
+    ${SPCONV_LIBRARY}
+    ${Protobuf_LIBRARIES}
+)
+
+# Build Executable
+option(CENTERPOINT_BUILD_EXECUTABLE "Build the standalone centerpoint executable" OFF)
+if(CENTERPOINT_BUILD_EXECUTABLE)
+  # (保持你原来的逻辑)
+  if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/main.cpp")
+    add_executable(${PROJECT_NAME} main.cpp)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_core)
+
+    target_link_libraries(${PROJECT_NAME}
+      ${PROJECT_NAME}_core
+    )
+  endif()
+endif()
