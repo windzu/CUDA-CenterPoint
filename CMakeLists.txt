@@ -27,6 +27,7 @@ project(centerpoint LANGUAGES C CXX CUDA)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-Wextra -Wall -Wno-deprecated-declarations -O3")
+option(CENTERPOINT_ENABLE_INSTALL "Enable install rules for centerpoint" ON)
 
 set(arch ${CMAKE_HOST_SYSTEM_PROCESSOR})
 
@@ -172,4 +173,20 @@ if(CENTERPOINT_BUILD_EXECUTABLE)
       ${PROJECT_NAME}_core
     )
   endif()
+endif()
+
+# Install
+if(CENTERPOINT_ENABLE_INSTALL)
+  install(TARGETS ${PROJECT_NAME}_core
+    EXPORT centerpointTargets
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin)
+
+  # 安装 spconv lib and include
+  set(SPCONV_LIB_DIR "${SPCONV_ROOT}/lib/${arch}_cuda${SPCONV_CUDA_VERSION}")
+  install(FILES "${SPCONV_LIB_DIR}/libspconv.so" DESTINATION lib)
+  install(DIRECTORY "${SPCONV_INCLUDE}/" DESTINATION include)
+
+  install(DIRECTORY include/ DESTINATION include)
 endif()
