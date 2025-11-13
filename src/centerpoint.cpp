@@ -47,11 +47,9 @@ double getAverage(std::vector<T> const& v) {
   return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
-CenterPoint::CenterPoint(
-    const std::string & modelFile,
-    const std::string & backboneOnnxFile,
-    const Params & params,
-    bool verbose)
+CenterPoint::CenterPoint(const std::string& modelFile,
+                         const std::string& backboneOnnxFile,
+                         const Params& params, bool verbose)
     : params_(params),
       verbose_(verbose),
       backbone_onnx_path_(backboneOnnxFile),
